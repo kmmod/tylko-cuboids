@@ -3,8 +3,8 @@ import { Api } from "./api/Api";
 import { Gui } from "./gui/Gui";
 import { Cuboids } from "./cuboids/Cuboids";
 
-import a from "./A.csv?raw";
-import c from "./C.csv?raw";
+// @ts-ignore
+import c from "/C.csv?url&raw";
 
 class App {
   private api = new Api();

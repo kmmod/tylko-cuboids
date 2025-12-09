@@ -114,7 +114,7 @@ export class Renderer {
       boundingBox[HEIGHT],
       boundingBox[DEPTH],
     );
-    const distance = maxDimension; // factor to ensure the box fits well in view
+    const distance = maxDimension * 0.6; // factor to ensure the box fits well in view
 
     // position the camera
     this.camera.position.set(
