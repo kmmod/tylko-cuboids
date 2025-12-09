@@ -1,0 +1,29 @@
+<div x-data="csvDropzone">
+  <div
+    class="dropzone"
+    :class="{ 'dragging': isDragging }"
+    @click="$refs.fileInput.click()"
+    @dragover.prevent="isDragging = true"
+    @dragleave.prevent="isDragging = false"
+    @drop.prevent="handleDrop($event)"
+  >
+    <p>Drop your CSV file here <br />or <strong>click to browse</strong></p>
+    <input
+      type="file"
+      x-ref="fileInput"
+      accept=".csv"
+      @change="handleFileSelect($event)"
+      style="display: none"
+    />
+  </div>
+
+  <div x-show="error" x-text="error" class="error"></div>
+
+  <template x-if="fileName">
+    <div class="file-info">
+      <span x-text="fileName"></span>
+      (<span x-text="formatFileSize(fileSize)"></span>)
+      <button @click="clearFile()">Clear</button>
+    </div>
+  </template>
+</div>
