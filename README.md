@@ -2,6 +2,9 @@
 
 A WebGL 2 visualization of cuboid groups defined in CSV files. Built with Vite 7, TypeScript, and Three.js.
 
+
+Live version: https://tylko-cuboids.netlify.app/
+
 ## Prerequisites
 
 - Node.js 22+
