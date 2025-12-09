@@ -3,4 +3,7 @@ import glsl from "vite-plugin-glsl";
 
 export default defineConfig({
   plugins: [glsl()],
+  worker: {
+    format: "es",
+  },
 });
