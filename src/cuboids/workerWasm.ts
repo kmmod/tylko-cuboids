@@ -72,4 +72,9 @@ const compute = async (csv: string) => {
   console.log(
     `Processed ${processor.get_cuboid_count()} cuboids in ${(end - start).toFixed(2)} ms, found ${offsets.length - 1} groups.`,
   );
+
+  const message = `Processed ${processor.get_cuboid_count()} cuboids. Time ${(end - start).toFixed(2)} ms. Found ${offsets.length - 1} groups.`;
+  self.postMessage({ type: "summary", message });
+
+  self.postMessage({ type: "finished" });
 };

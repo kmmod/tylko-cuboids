@@ -1,0 +1,25 @@
+<div x-data="checkbox">
+  <div
+    class="checkbox"
+    :class="{ 'checked': isChecked, 'disabled': isDisabled }"
+    @click="toggle()"
+  >
+    <span class="checkbox-box">
+      <svg
+        x-show="isChecked"
+        class="checkbox-icon"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="3"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <polyline points="20 6 9 17 4 12"></polyline>
+      </svg>
+    </span>
+    <span class="checkbox-label" x-text="label"></span>
+  </div>
+
+  <div x-show="error" x-text="error" class="error"></div>
+</div>

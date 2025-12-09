@@ -1,0 +1,81 @@
+.checkbox {
+  box-sizing: border-box;
+  position: relative;
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 12px;
+  margin: 12px;
+  background: rgba(255, 255, 255, 0.15);
+  border: 2px solid #cbd5e1;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+  width: 225px;
+}
+
+.checkbox:hover {
+  border-color: #94a3b8;
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.checkbox.checked {
+  border-color: #3b82f6;
+  background: #eff6ff;
+}
+
+.checkbox.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.checkbox-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 2px solid #cbd5e1;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.5);
+  transition: all 0.2s ease;
+}
+
+.checkbox:hover .checkbox-box {
+  border-color: #94a3b8;
+}
+
+.checkbox.checked .checkbox-box {
+  border-color: #3b82f6;
+  background: #3b82f6;
+}
+
+.checkbox-icon {
+  width: 16px;
+  height: 16px;
+  color: white;
+}
+
+.checkbox-label {
+  color: #94a3b8;
+  font-size: 14px;
+  transition: color 0.2s ease;
+}
+
+.checkbox.checked .checkbox-label {
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.error {
+  margin-top: 16px;
+  padding: 12px 16px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  color: #dc2626;
+  font-size: 14px;
+}

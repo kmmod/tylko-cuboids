@@ -1,0 +1,36 @@
+.btn {
+  box-sizing: border-box;
+  position: relative;
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 12px;
+  margin: 12px;
+  background: rgba(255, 255, 255, 0.15);
+  border: 2px solid #cbd5e1;
+  border-radius: 8px;
+  color: #94a3b8;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+  width: 225px;
+}
+
+.btn:hover {
+  border-color: #3b82f6;
+  background: #eff6ff;
+  color: #3b82f6;
+}
+
+.btn:active {
+  transform: scale(0.98);
+}
+
+.btn.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}

@@ -5,7 +5,7 @@ export class Cuboids {
   private readonly api: Api;
   private worker: Worker;
   private workerWasm: Worker;
-  private useWasm: boolean = true;
+  private useWasm: boolean = false;
 
   constructor(api: Api) {
     this.api = api;
@@ -52,6 +52,9 @@ export class Cuboids {
         break;
       case "boxes":
         this.api.onBoxesComputed.emit(e.data.boxes);
+        break;
+      case "summary":
+        this.api.onInfoMessage.emit(e.data.message);
         break;
       case "finished":
         console.log("Compute completed");

@@ -1,4 +1,5 @@
 .dropzone {
+  box-sizing: border-box;
   position: relative;
   pointer-events: auto;
   border: 2px dashed #cbd5e1;
@@ -9,6 +10,7 @@
   background: rgba(255, 255, 255, 0.15);
   transition: all 0.2s ease;
   cursor: pointer;
+  width: 225px;
 }
 
 .dropzone:hover {

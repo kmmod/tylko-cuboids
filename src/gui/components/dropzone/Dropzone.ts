@@ -1,7 +1,7 @@
 import Alpine from "alpinejs";
 import dropzoneTemplate from "./dropzone.html?raw";
 import "./dropzone.css";
-import { Api } from "../../api/Api";
+import type { Api } from "../../../api/Api";
 
 const selector = "#dropzone";
 

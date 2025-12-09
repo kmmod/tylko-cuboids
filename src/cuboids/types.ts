@@ -5,6 +5,7 @@
 export type WorkerResult =
   | { type: "boundingBox"; boundingBox: Box }
   | { type: "boxes"; boxes: Box[] }
+  | { type: "summary"; message: string }
   | { type: "finished" };
 
 export type WasmWorkerMessage =

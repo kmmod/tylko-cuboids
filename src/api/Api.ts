@@ -5,7 +5,9 @@ export class Api {
   public readonly onDataLoaded = new Signal<[data: string]>();
   public readonly onDataCleared = new Signal<[]>();
 
+  public readonly onRerunClicked = new Signal<[]>();
   public readonly onUseWasmSet = new Signal<[useWasm: boolean]>();
+  public readonly onInfoMessage = new Signal<[message: string]>();
 
   public readonly onBoundingBoxSet = new Signal<[box: Box]>();
   public readonly onBoxesComputed = new Signal<[boxes: Box[]]>();

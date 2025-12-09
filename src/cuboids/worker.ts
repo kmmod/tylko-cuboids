@@ -31,8 +31,11 @@ self.onmessage = (e: MessageEvent<string>) => {
 
   const end = performance.now();
   console.log(
-    `Processed ${cuboids.length} cuboids in ${(end - start).toFixed(2)} ms, found ${groupsCount} groups.`,
+    `Processed ${cuboids.length} cuboids in ${(end - start).toFixed(2)} ms. Found ${groupsCount} groups.`,
   );
+
+  const message = `Processed ${cuboids.length} cuboids. Time: ${(end - start).toFixed(2)} ms. Found ${groupsCount} groups.`;
+  self.postMessage({ type: "summary", message });
 
   self.postMessage({ type: "finished" });
 };

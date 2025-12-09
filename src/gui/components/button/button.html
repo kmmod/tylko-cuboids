@@ -1,0 +1,9 @@
+<div x-data="button">
+  <button
+    class="btn"
+    :class="{ 'disabled': isDisabled }"
+    :disabled="isDisabled"
+    @click="handleClick()"
+    x-text="label"
+  ></button>
+</div>
