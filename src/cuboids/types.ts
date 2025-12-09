@@ -7,6 +7,12 @@ export interface ComputeResult {
   boundingBox: Box;
 }
 
+// Using discriminated unions to fake proper enums with data
+export type WorkerResult =
+  | { type: "boundingBox"; boundingBox: Box }
+  | { type: "boxes"; boxes: Box[] }
+  | { type: "finished" };
+
 export interface ConvertCuboidsResult {
   boxes: Box[];
   boundingBox: Box;

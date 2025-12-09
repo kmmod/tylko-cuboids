@@ -23,6 +23,9 @@ importers:
       three:
         specifier: ^0.181.2
         version: 0.181.2
+      vite-plugin-glsl:
+        specifier: ^1.5.5
+        version: 1.5.5(esbuild@0.25.12)(vite@7.2.7)
     devDependencies:
       typescript:
         specifier: ~5.9.3
@@ -399,6 +402,19 @@ packages:
     engines: {node: '>=14.17'}
     hasBin: true
 
+  vite-plugin-glsl@1.5.5:
+    resolution: {integrity: sha512-6NM2P4JkM+1hNSqMhM4eagX03bmhEoTyrOrk68y3Q6KXfdF73QIuCb6BmRZvwLPgXTCOBM3Zc8gL1WxctYnrUQ==}
+    engines: {node: '>= 20.17.0', npm: '>= 10.8.3'}
+    peerDependencies:
+      '@rollup/pluginutils': ^5.x
+      esbuild: '>= 0.25'
+      vite: '>= 3.x'
+    peerDependenciesMeta:
+      '@rollup/pluginutils':
+        optional: true
+      esbuild:
+        optional: true
+
   vite@7.2.7:
     resolution: {integrity: sha512-ITcnkFeR3+fI8P1wMgItjGrR10170d8auB4EpMLPqmx6uxElH3a/hHGQabSHKdqd4FXWO1nFIp9rRn7JQ34ACQ==}
     engines: {node: ^20.19.0 || >=22.12.0}
@@ -711,6 +727,12 @@ snapshots:
       picomatch: 4.0.3
 
   typescript@5.9.3: {}
+
+  vite-plugin-glsl@1.5.5(esbuild@0.25.12)(vite@7.2.7):
+    dependencies:
+      vite: 7.2.7
+    optionalDependencies:
+      esbuild: 0.25.12
 
   vite@7.2.7:
     dependencies:

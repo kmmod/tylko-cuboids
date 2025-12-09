@@ -8,7 +8,7 @@ import {
 } from "three";
 import { OrbitControls } from "three/examples/jsm/Addons.js";
 import { Api } from "../api/Api";
-import { BoxIndex, type Box, type ComputeResult } from "../cuboids/types";
+import { BoxIndex, type Box } from "../cuboids/types";
 import { MeshManager } from "./MeshManager";
 
 const container = "#app";
@@ -27,10 +27,18 @@ export class Renderer {
     this.addEventListeners();
     this.render();
 
-    this.api.onBoxesGenerated.connect((result: ComputeResult) => {
-      this.updateCamera(result.boundingBox);
+    this.api.onBoundingBoxSet.connect((boundingBox: Box) => {
+      this.updateCamera(boundingBox);
+      this.updateScale(boundingBox);
+    });
+
+    this.api.onBoxesComputed.connect((boxes: Box[]) => {
+      this.meshManager.addBoxes(this.scene, boxes);
+    });
+
+    // Clear existing meshes when new data is loaded
+    this.api.onDataLoaded.connect(() => {
       this.meshManager.dispose(this.scene);
-      this.meshManager.create(this.scene, result.boxes);
     });
 
     this.api.onDataCleared.connect(() => {
@@ -116,6 +124,17 @@ export class Renderer {
     );
     this.camera.lookAt(centerX, centerY, centerZ);
     this.camera.updateProjectionMatrix();
+  }
+
+  private updateScale(boundingBox: Box): void {
+    const { WIDTH, DEPTH, HEIGHT } = BoxIndex;
+    const maxDimension = Math.max(
+      boundingBox[WIDTH],
+      boundingBox[HEIGHT],
+      boundingBox[DEPTH],
+    );
+
+    this.meshManager.setTextureScale(20 / maxDimension);
   }
 
   private onWindowResize(): void {

@@ -1,5 +1,5 @@
 import type { Api } from "../api/Api";
-import type { ComputeResult } from "./types";
+import type { WorkerResult } from "./types";
 
 export class Cuboids {
   private readonly api: Api;
@@ -12,18 +12,25 @@ export class Cuboids {
       type: "module",
     });
 
-    this.worker.onmessage = (e: MessageEvent<ComputeResult>) => {
-      this.onComputeComplete(e.data);
-    };
+    this.worker.onmessage = this.processWorkerMessage.bind(this);
 
-    this.api.onDataLoaded.connect((data: string) => this.generate(data));
+    this.api.onDataLoaded.connect((data: string) =>
+      this.worker.postMessage(data),
+    );
   }
 
-  private generate(csv: string) {
-    this.worker.postMessage(csv);
-  }
+  private processWorkerMessage(e: MessageEvent<WorkerResult>) {
+    const type = e.data.type;
 
-  private onComputeComplete(result: ComputeResult) {
-    this.api.onBoxesGenerated.emit(result);
+    switch (type) {
+      case "boundingBox":
+        this.api.onBoundingBoxSet.emit(e.data.boundingBox);
+        break;
+      case "boxes":
+        this.api.onBoxesComputed.emit(e.data.boxes);
+        break;
+      case "finished":
+        console.log("Compute completed");
+    }
   }
 }
