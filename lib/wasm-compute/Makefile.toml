@@ -1,0 +1,153 @@
+[env]
+WASM_DIR = "./"
+OUTPUT_DIR = "../../src/lib/wasm-compute"
+
+[tasks.build-web]
+description = "Build WASM module for web target"
+dependencies = ["ensure-wasm-pack", "wasm-build", "copy-pkg"]
+
+[tasks.build-web-dev]
+description = "Build WASM module for web (debug mode)"
+dependencies = ["ensure-wasm-pack", "wasm-build-dev", "copy-pkg"]
+
+[tasks.build-web-watch]
+description = "Watch and rebuild WASM on changes"
+dependencies = ["ensure-wasm-pack"]
+watch = { watch = ["${WASM_DIR}/src"] }
+run_task = "wasm-build-and-copy"
+
+[tasks.build-web-dev-watch]
+description = "Watch and rebuild WASM on changes"
+dependencies = ["ensure-wasm-pack"]
+watch = { watch = ["${WASM_DIR}/src"] }
+run_task = "wasm-build-and-copy-dev"
+
+[tasks.wasm-build-and-copy]
+description = "Build and copy (for watch mode)"
+dependencies = ["wasm-build", "copy-pkg"]
+
+[tasks.wasm-build-and-copy-dev]
+description = "Build and copy (for watch mode)"
+dependencies = ["wasm-build-dev", "copy-pkg"]
+
+# ============================================================================
+# WASM Build Tasks
+# ============================================================================
+
+[tasks.wasm-build]
+description = "Run wasm-pack build (release)"
+cwd = "${WASM_DIR}"
+command = "wasm-pack"
+args = ["build", "--target", "web", "--release"]
+
+[tasks.wasm-build-dev]
+description = "Run wasm-pack build (debug)"
+cwd = "${WASM_DIR}"
+command = "wasm-pack"
+args = ["build", "--target", "web", "--dev"]
+
+[tasks.wasm-build-dev-only]
+description = "Run wasm-pack build without copy (for watch)"
+cwd = "${WASM_DIR}"
+command = "wasm-pack"
+args = ["build", "--target", "web", "--dev"]
+
+# ============================================================================
+# Copy & Clean Tasks
+# ============================================================================
+
+[tasks.copy-pkg]
+description = "Copy wasm-pack output to pkg directory"
+script_runner = "@shell"
+script = '''
+mkdir -p ${OUTPUT_DIR}
+cp -r ${WASM_DIR}/pkg/* ${OUTPUT_DIR}/
+echo "✅ Copied WASM files to ${OUTPUT_DIR}/"
+'''
+
+[tasks.clean-wasm]
+description = "Clean WASM build artifacts"
+script_runner = "@shell"
+script = '''
+rm -rf ${WASM_DIR}/pkg
+rm -rf ${WASM_DIR}/target
+rm -rf ${OUTPUT_DIR}
+echo "🧹 Cleaned WASM build artifacts"
+'''
+
+# ============================================================================
+# Setup Tasks
+# ============================================================================
+
+[tasks.ensure-wasm-pack]
+description = "Ensure wasm-pack is installed"
+script_runner = "@shell"
+script = '''
+if ! command -v wasm-pack &> /dev/null; then
+    echo "Installing wasm-pack..."
+    cargo install wasm-pack
+else
+    echo "✓ wasm-pack found"
+fi
+'''
+
+[tasks.ensure-target]
+description = "Ensure wasm32 target is installed"
+command = "rustup"
+args = ["target", "add", "wasm32-unknown-unknown"]
+
+[tasks.setup-wasm]
+description = "Full setup for WASM development"
+dependencies = ["ensure-target", "ensure-wasm-pack"]
+
+# ============================================================================
+# Test Tasks
+# ============================================================================
+
+[tasks.test-wasm]
+description = "Run WASM tests in headless browser"
+cwd = "${WASM_DIR}"
+command = "wasm-pack"
+args = ["test", "--headless", "--chrome"]
+
+[tasks.test-wasm-node]
+description = "Run WASM tests in Node.js"
+cwd = "${WASM_DIR}"
+command = "wasm-pack"
+args = ["test", "--node"]
+
+# ============================================================================
+# Utility Tasks
+# ============================================================================
+
+[tasks.size]
+description = "Show WASM file size"
+script_runner = "@shell"
+script = '''
+if [ -f "${OUTPUT_DIR}/wasm_cuboids_bg.wasm" ]; then
+    echo "WASM size:"
+    ls -lh ${OUTPUT_DIR}/wasm_cuboids_bg.wasm
+    echo ""
+    echo "Gzipped:"
+    gzip -c ${OUTPUT_DIR}/wasm_cuboids_bg.wasm | wc -c | awk '{printf "%.2f KB\n", $1/1024}'
+else
+    echo "WASM not built yet. Run: cargo make build-web"
+fi
+'''
+
+[tasks.help-wasm]
+description = "Show available WASM tasks"
+script_runner = "@shell"
+script = '''
+echo "Available WASM tasks:"
+echo ""
+echo "  cargo make build-web       - Build WASM (release)"
+echo "  cargo make build-web-dev   - Build WASM (debug)"
+echo "  cargo make build-web-watch - Watch & rebuild on changes"
+echo "  cargo make clean-wasm      - Clean build artifacts"
+echo "  cargo make setup-wasm      - Install dependencies"
+echo "  cargo make test-wasm       - Run tests (Chrome)"
+echo "  cargo make test-wasm-node  - Run tests (Node.js)"
+echo "  cargo make size            - Show WASM file size"
+echo ""
+'''

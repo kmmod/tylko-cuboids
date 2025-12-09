@@ -20,7 +20,6 @@ export const buildGroupsStreaming = (
       for (let j = i + 1; j < indices.length; j++) {
         const a = indices[i];
         const b = indices[j];
-        if (uf.find(a) === uf.find(b)) continue;
         if (areFaceAdjacentC(cuboids[a], cuboids[b])) {
           uf.union(a, b);
         }
@@ -68,7 +67,7 @@ export const buildGroupsStreaming = (
 };
 
 // @ts-ignore
-const areFaceAdjacent = (a: Cuboid, b: Cuboid): boolean => {
+const areFaceAdjacentA = (a: Cuboid, b: Cuboid): boolean => {
   const { X1, Y1, Z1, X2, Y2, Z2 } = CuboidIndex;
 
   if (a[X2] === b[X1] || b[X2] === a[X1]) {

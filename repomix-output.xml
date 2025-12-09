@@ -1,0 +1,502 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+compute/
+  boundingBox.ts
+  buildGroups.ts
+  parseCsv.ts
+  spatialHash.ts
+  unionFind.ts
+Cuboids.ts
+types.ts
+worker.ts
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="compute/boundingBox.ts">
+import { type Cuboid, type Box, CuboidIndex } from "../types";
+
+const BOUNDING_BOX_GROUP_ID = -1;
+
+export const computeBoundingBox = (cuboids: Cuboid[]): Box => {
+  const { X1, Y1, Z1, X2, Y2, Z2 } = CuboidIndex;
+
+  let minX = Infinity,
+    minY = Infinity,
+    minZ = Infinity;
+  let maxX = -Infinity,
+    maxY = -Infinity,
+    maxZ = -Infinity;
+
+  for (const c of cuboids) {
+    if (c[X1] < minX) minX = c[X1];
+    if (c[Y1] < minY) minY = c[Y1];
+    if (c[Z1] < minZ) minZ = c[Z1];
+    if (c[X2] > maxX) maxX = c[X2];
+    if (c[Y2] > maxY) maxY = c[Y2];
+    if (c[Z2] > maxZ) maxZ = c[Z2];
+  }
+
+  const width = maxX - minX;
+  const height = maxY - minY;
+  const depth = maxZ - minZ;
+
+  return [
+    BOUNDING_BOX_GROUP_ID,
+    minX + width / 2,
+    minY + height / 2,
+    minZ + depth / 2,
+    width,
+    height,
+    depth,
+  ];
+};
+</file>
+
+<file path="compute/buildGroups.ts">
+import { type Cuboid, type Box, CuboidIndex } from "../types";
+import { UnionFind } from "./unionFind";
+
+export const buildGroupsStreaming = (
+  cuboids: Cuboid[],
+  spatialHash: Map<string, number[]>,
+  onGroup: (boxes: Box[]) => void,
+): void => {
+  const { X1, Y1, Z1, X2, Y2, Z2 } = CuboidIndex;
+  const n = cuboids.length;
+  const uf = new UnionFind(n);
+
+  const t0 = performance.now();
+  // Build unions
+  // This is most consuming part and it looks like its difficult to parallelize it further.
+  // The spatial hashing helps to reduce the number of comparisons significantly, but overall
+  // we need to compare all cuboids to make sure we find all adjacent ones.
+  for (const indices of spatialHash.values()) {
+    for (let i = 0; i < indices.length; i++) {
+      for (let j = i + 1; j < indices.length; j++) {
+        const a = indices[i];
+        const b = indices[j];
+        if (areFaceAdjacentC(cuboids[a], cuboids[b])) {
+          uf.union(a, b);
+        }
+      }
+    }
+  }
+  console.log(`buildUnions: ${performance.now() - t0}ms`);
+
+  // Collect groups
+  const groupMap = new Map<number, number[]>();
+  for (let i = 0; i < n; i++) {
+    const root = uf.find(i);
+    if (!groupMap.has(root)) groupMap.set(root, []);
+    groupMap.get(root)!.push(i);
+  }
+
+  // Stream each group
+  let groupId = 0;
+  for (const indices of groupMap.values()) {
+    if (indices.length < 2) continue;
+
+    const t0 = performance.now();
+    // Build boxes for this group
+    const boxes: Box[] = new Array(indices.length);
+    for (let i = 0; i < indices.length; i++) {
+      const c = cuboids[indices[i]];
+      const width = c[X2] - c[X1];
+      const height = c[Y2] - c[Y1];
+      const depth = c[Z2] - c[Z1];
+      boxes[i] = [
+        groupId,
+        c[X1] + width / 2,
+        c[Y1] + height / 2,
+        c[Z1] + depth / 2,
+        width,
+        height,
+        depth,
+      ];
+    }
+
+    onGroup(boxes);
+    groupId++;
+    console.log(`buildGroup ${groupId}: ${performance.now() - t0}ms`);
+  }
+};
+
+// @ts-ignore
+const areFaceAdjacentA = (a: Cuboid, b: Cuboid): boolean => {
+  const { X1, Y1, Z1, X2, Y2, Z2 } = CuboidIndex;
+
+  if (a[X2] === b[X1] || b[X2] === a[X1]) {
+    const yOverlap = Math.min(a[Y2], b[Y2]) - Math.max(a[Y1], b[Y1]);
+    const zOverlap = Math.min(a[Z2], b[Z2]) - Math.max(a[Z1], b[Z1]);
+    if (yOverlap > 0 && zOverlap > 0) return true;
+  }
+
+  if (a[Y2] === b[Y1] || b[Y2] === a[Y1]) {
+    const xOverlap = Math.min(a[X2], b[X2]) - Math.max(a[X1], b[X1]);
+    const zOverlap = Math.min(a[Z2], b[Z2]) - Math.max(a[Z1], b[Z1]);
+    if (xOverlap > 0 && zOverlap > 0) return true;
+  }
+
+  if (a[Z2] === b[Z1] || b[Z2] === a[Z1]) {
+    const xOverlap = Math.min(a[X2], b[X2]) - Math.max(a[X1], b[X1]);
+    const yOverlap = Math.min(a[Y2], b[Y2]) - Math.max(a[Y1], b[Y1]);
+    if (xOverlap > 0 && yOverlap > 0) return true;
+  }
+
+  return false;
+};
+
+// @ts-ignore
+const areFaceAdjacentB = (a: Cuboid, b: Cuboid): boolean => {
+  // Inline indices (avoid object destructuring in hot path)
+  const ax1 = a[1],
+    ay1 = a[2],
+    az1 = a[3];
+  const ax2 = a[4],
+    ay2 = a[5],
+    az2 = a[6];
+  const bx1 = b[1],
+    by1 = b[2],
+    bz1 = b[3];
+  const bx2 = b[4],
+    by2 = b[5],
+    bz2 = b[6];
+
+  // X-face adjacency
+  if (ax2 === bx1 || bx2 === ax1) {
+    if (ay2 > by1 && by2 > ay1 && az2 > bz1 && bz2 > az1) return true;
+  }
+
+  // Y-face adjacency
+  if (ay2 === by1 || by2 === ay1) {
+    if (ax2 > bx1 && bx2 > ax1 && az2 > bz1 && bz2 > az1) return true;
+  }
+
+  // Z-face adjacency
+  if (az2 === bz1 || bz2 === az1) {
+    if (ax2 > bx1 && bx2 > ax1 && ay2 > by1 && by2 > ay1) return true;
+  }
+
+  return false;
+};
+
+// Fully inlined, no variables
+// @ts-ignore
+const areFaceAdjacentC = (a: Cuboid, b: Cuboid): boolean => {
+  // X-face
+  if (
+    (a[4] === b[1] || b[4] === a[1]) &&
+    a[5] > b[2] &&
+    b[5] > a[2] &&
+    a[6] > b[3] &&
+    b[6] > a[3]
+  )
+    return true;
+  // Y-face
+  if (
+    (a[5] === b[2] || b[5] === a[2]) &&
+    a[4] > b[1] &&
+    b[4] > a[1] &&
+    a[6] > b[3] &&
+    b[6] > a[3]
+  )
+    return true;
+  // Z-face
+  if (
+    (a[6] === b[3] || b[6] === a[3]) &&
+    a[4] > b[1] &&
+    b[4] > a[1] &&
+    a[5] > b[2] &&
+    b[5] > a[2]
+  )
+    return true;
+  return false;
+};
+</file>
+
+<file path="compute/parseCsv.ts">
+import type { Cuboid } from "../types";
+
+export const parseCsv = (csv: string): Cuboid[] => {
+  return csv
+    .trim()
+    .split("\n")
+    .filter((line) => line.trim())
+    .map((line) => {
+      const parts = line.trim().split(";").map(Number);
+      if (!isCuboid(parts)) {
+        throw new Error(`Invalid cuboid: ${line}`);
+      }
+      return parts;
+    });
+};
+
+export const isCuboid = (arr: number[]): arr is Cuboid => {
+  return (
+    arr.length === 7 && arr.every((n) => typeof n === "number" && !isNaN(n))
+  );
+};
+</file>
+
+<file path="compute/spatialHash.ts">
+import { CuboidIndex, type Cuboid } from "../types";
+
+const CELL_SIZE = 800;
+
+export const buildSpatialHash = (cuboids: Cuboid[]): Map<string, number[]> => {
+  const { X1, Y1, Z1, X2, Y2, Z2 } = CuboidIndex;
+  const hash = new Map<string, number[]>();
+
+  for (let i = 0; i < cuboids.length; i++) {
+    const c = cuboids[i];
+
+    const minCX = Math.floor(c[X1] / CELL_SIZE);
+    const minCY = Math.floor(c[Y1] / CELL_SIZE);
+    const minCZ = Math.floor(c[Z1] / CELL_SIZE);
+    const maxCX = Math.floor((c[X2] - 1) / CELL_SIZE);
+    const maxCY = Math.floor((c[Y2] - 1) / CELL_SIZE);
+    const maxCZ = Math.floor((c[Z2] - 1) / CELL_SIZE);
+
+    for (let cx = minCX; cx <= maxCX; cx++) {
+      for (let cy = minCY; cy <= maxCY; cy++) {
+        for (let cz = minCZ; cz <= maxCZ; cz++) {
+          const key = `${cx},${cy},${cz}`;
+          if (!hash.has(key)) hash.set(key, []);
+          hash.get(key)!.push(i);
+        }
+      }
+    }
+  }
+
+  return hash;
+};
+</file>
+
+<file path="compute/unionFind.ts">
+export class UnionFind {
+  parent: Int32Array;
+  rank: Int8Array;
+
+  constructor(n: number) {
+    this.parent = new Int32Array(n);
+    this.rank = new Int8Array(n);
+    for (let i = 0; i < n; i++) {
+      this.parent[i] = i;
+    }
+  }
+
+  find(x: number): number {
+    if (this.parent[x] !== x) {
+      this.parent[x] = this.find(this.parent[x]);
+    }
+    return this.parent[x];
+  }
+
+  union(x: number, y: number): void {
+    const px = this.find(x);
+    const py = this.find(y);
+    if (px === py) return;
+
+    if (this.rank[px] < this.rank[py]) {
+      this.parent[px] = py;
+    } else if (this.rank[px] > this.rank[py]) {
+      this.parent[py] = px;
+    } else {
+      this.parent[py] = px;
+      this.rank[px]++;
+    }
+  }
+}
+</file>
+
+<file path="Cuboids.ts">
+import type { Api } from "../api/Api";
+import type { WorkerResult } from "./types";
+
+export class Cuboids {
+  private readonly api: Api;
+  private worker: Worker;
+
+  constructor(api: Api) {
+    this.api = api;
+
+    this.worker = new Worker(new URL("./worker.ts", import.meta.url), {
+      type: "module",
+    });
+
+    this.worker.onmessage = this.processWorkerMessage.bind(this);
+
+    this.api.onDataLoaded.connect((data: string) =>
+      this.worker.postMessage(data),
+    );
+  }
+
+  private processWorkerMessage(e: MessageEvent<WorkerResult>) {
+    const type = e.data.type;
+
+    switch (type) {
+      case "boundingBox":
+        this.api.onBoundingBoxSet.emit(e.data.boundingBox);
+        break;
+      case "boxes":
+        this.api.onBoxesComputed.emit(e.data.boxes);
+        break;
+      case "finished":
+        console.log("Compute completed");
+    }
+  }
+}
+</file>
+
+<file path="types.ts">
+// Pros: Worker offloads heavy computation from the main thread
+// Pros: Easy to replace worker implementation with WASM module
+// Cons: Without transferrable objects, data has to be copied between threads
+export interface ComputeResult {
+  cuboids: Cuboid[];
+  boxes: Box[];
+  boundingBox: Box;
+}
+
+// Using discriminated unions to fake proper enums with data
+export type WorkerResult =
+  | { type: "boundingBox"; boundingBox: Box }
+  | { type: "boxes"; boxes: Box[] }
+  | { type: "finished" };
+
+export interface ConvertCuboidsResult {
+  boxes: Box[];
+  boundingBox: Box;
+}
+
+// Cuboid index types for better readability
+export const CuboidIndex = {
+  ID: 0,
+  X1: 1,
+  Y1: 2,
+  Z1: 3,
+  X2: 4,
+  Y2: 5,
+  Z2: 6,
+};
+
+export type CuboidIndex = (typeof CuboidIndex)[keyof typeof CuboidIndex];
+
+// Labeled tuple elements
+export type Cuboid = [
+  id: number,
+  x1: number,
+  y1: number,
+  z1: number,
+  x2: number,
+  y2: number,
+  z2: number,
+];
+
+export const BoxIndex = {
+  GROUP_ID: 0,
+  X: 1,
+  Y: 2,
+  Z: 3,
+  WIDTH: 4,
+  HEIGHT: 5,
+  DEPTH: 6,
+};
+
+export type BoxIndex = (typeof BoxIndex)[keyof typeof BoxIndex];
+
+export type Box = [
+  groupId: number,
+  x: number,
+  y: number,
+  z: number,
+  width: number,
+  height: number,
+  depth: number,
+];
+</file>
+
+<file path="worker.ts">
+import { computeBoundingBox } from "./compute/boundingBox";
+import { buildGroupsStreaming } from "./compute/buildGroups";
+import { parseCsv } from "./compute/parseCsv";
+import { buildSpatialHash } from "./compute/spatialHash";
+import { type Box } from "./types";
+
+self.onmessage = (e: MessageEvent<string>) => {
+  const start = performance.now();
+
+  const t0 = performance.now();
+  const cuboids = parseCsv(e.data);
+  console.log(`parseCsv: ${performance.now() - t0}ms`);
+
+  const t1 = performance.now();
+  const boundingBox = computeBoundingBox(cuboids);
+  console.log(`boundingBox: ${performance.now() - t1}ms`);
+
+  self.postMessage({ type: "boundingBox", boundingBox });
+
+  const t2 = performance.now();
+  const spatialHash = buildSpatialHash(cuboids);
+  console.log(`buildSpatialHash: ${performance.now() - t2}ms`);
+
+  let groupsCount = 0;
+  const t3 = performance.now();
+  buildGroupsStreaming(cuboids, spatialHash, (boxes: Box[]) => {
+    groupsCount++;
+    self.postMessage({ type: "boxes", boxes });
+  });
+  console.log(`buildAllGroups: ${performance.now() - t3}ms`);
+
+  const end = performance.now();
+  console.log(
+    `Processed ${cuboids.length} cuboids in ${(end - start).toFixed(2)} ms, found ${groupsCount} groups.`,
+  );
+
+  self.postMessage({ type: "finished" });
+};
+</file>
+
+</files>

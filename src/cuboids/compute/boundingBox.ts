@@ -1,5 +1,7 @@
 import { type Cuboid, type Box, CuboidIndex } from "../types";
 
+const BOUNDING_BOX_GROUP_ID = -1;
+
 export const computeBoundingBox = (cuboids: Cuboid[]): Box => {
   const { X1, Y1, Z1, X2, Y2, Z2 } = CuboidIndex;
 
@@ -24,7 +26,7 @@ export const computeBoundingBox = (cuboids: Cuboid[]): Box => {
   const depth = maxZ - minZ;
 
   return [
-    -1,
+    BOUNDING_BOX_GROUP_ID,
     minX + width / 2,
     minY + height / 2,
     minZ + depth / 2,

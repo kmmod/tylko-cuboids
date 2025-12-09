@@ -1,0 +1,15 @@
+{
+  "name": "wasm-cuboids",
+  "description": "WASM module for cuboid computations",
+  "version": "0.1.0",
+  "files": [
+    "wasm_cuboids_bg.wasm",
+    "wasm_cuboids.js",
+    "wasm_cuboids.d.ts"
+  ],
+  "module": "wasm_cuboids.js",
+  "types": "wasm_cuboids.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}

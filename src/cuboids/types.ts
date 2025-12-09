@@ -1,17 +1,15 @@
 // Pros: Worker offloads heavy computation from the main thread
 // Pros: Easy to replace worker implementation with WASM module
 // Cons: Without transferrable objects, data has to be copied between threads
-export interface ComputeResult {
-  cuboids: Cuboid[];
-  boxes: Box[];
-  boundingBox: Box;
-}
-
 // Using discriminated unions to fake proper enums with data
 export type WorkerResult =
   | { type: "boundingBox"; boundingBox: Box }
   | { type: "boxes"; boxes: Box[] }
   | { type: "finished" };
+
+export type WasmWorkerMessage =
+  | { type: "warmup" }
+  | { type: "compute"; csv: string };
 
 export interface ConvertCuboidsResult {
   boxes: Box[];
@@ -36,9 +34,9 @@ export type Cuboid = [
   id: number,
   x1: number,
   y1: number,
+  z1: number,
   x2: number,
   y2: number,
-  z1: number,
   z2: number,
 ];
 
