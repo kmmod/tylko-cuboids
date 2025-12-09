@@ -1,6 +1,7 @@
 uniform float uTime;
 varying vec3 vNormal;
 varying vec3 vWorldPosition;
+varying vec3 vLocalPosition;
 varying vec2 vUv;
 
 void main() {
@@ -15,6 +16,8 @@ void main() {
     vNormal = normalize(normalMat * normal);
 
     vWorldPosition = worldPosition.xyz;
+    vLocalPosition = position;
+
     vUv = uv;
     gl_Position = projectionMatrix * viewMatrix * worldPosition;
 }
