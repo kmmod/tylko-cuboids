@@ -71,20 +71,66 @@ Where:
 
 ## Grouping Algorithm
 
-*TODO: Document the adjacency grouping algorithm*
+
+The application groups cuboids that share face adjacency using a **Union-Find (Disjoint Set Union)** algorithm combined with **spatial hashing** for performance optimization.
+
+Two cuboids are considered face-adjacent when:
+1. One face of cuboid A touches one face of cuboid B (their coordinates match exactly on one axis)
+2. The faces have a positive overlap area (non-zero intersection in the other two dimensions)
+
+For example, cuboids are adjacent if:
+- Their X faces touch (`a.x2 == b.x1` or `b.x2 == a.x1`) AND they overlap in both Y and Z dimensions
+- Their Y faces touch (`a.y2 == b.y1` or `b.y2 == a.y1`) AND they overlap in both X and Z dimensions
+- Their Z faces touch (`a.z2 == b.z1` or `b.z2 == a.z1`) AND they overlap in both X and Y dimensions
+
+### Algorithm structure
+1. **Spatial Hashing**: Cuboids are placed into a 3D grid of cells (cell size: 800 units). Each cuboid is registered in all cells it overlaps. This reduces the comparison space, only cuboids in the same cell need to be checked for adjacency.
+#
+2. **Union-Find**: A Union-Find data structure with path compression and union-by-rank efficiently tracks connected components. For each cell, all cuboid pairs are tested for face adjacency, and adjacent cuboids are merged into the same group.
+#
+3. **Group Extraction**: After processing all cells, connected components are extracted. Each component represents a group of face-adjacent cuboids rendered with the same material/color.
+
+### Complexity
+
+- **Spatial hashing**: O(n) to build, where n is the number of cuboids
+- Approaches O(n) for uniformly distributed cuboids, degrades toward O(n²) for highly clustered data
+
 
 ## Architecture
 
-*TODO: Document the overall architecture and code structure*
+
+The application follows a modular architecture with event driven components.
+Central point is internal Api that distrubutes events between modules.
+Each module is self contained and responsible for a specific functionality.
+Heavy computations are offloaded to Web Workers to keep the UI responsive.
+
 
 ## WebGL 2 Justification
 
-*TODO: Explain the choice of WebGL 2 over WebGPU*
+Webgl2 was chosen over WebGPU for practical reasons:
+
+- Browser support - near universal browser support (mobile, desktop, safari, chrome etc)
+- Sufficient capability - webGPU could possibly leverage compute shaders for grouping, but provides no significant visual or performance benefit for rendering instanced meshes of cuboids in this use case.
+- Development speed - threeJS abstracts webgl2 complexities, allowing faster development and prototyping.
+
 
 ## Performance & Optimizations
 
-*TODO: Document performance considerations and optimizations for 500k cuboids*
+- **Web Worker**: All heavy computation (CSV parsing, spatial hashing, grouping) runs in a dedicated worker thread, keeping the main thread free for rendering and user interaction.
+
+- **Inlined Hot Paths**: The face adjacency check (`areFaceAdjacentC`) is fully inlined with direct array indexing to eliminate function call overhead in the inner loop.
+
+- **Streaming Groups**: Groups are sent to the renderer as they're computed rather than waiting for all groups, enabling progressive rendering.
+
+- **Matrix Reuse**: Transform matrix, position, rotation, and scale vectors are allocated once and reused to avoid GC pressure during mesh setup.
+
 
 ## Limitations
 
-*TODO: Document any known limitations*
+- **File size limits**: Very large CSV files may hit browser memory limits or cause slowdowns due to data transfer and parsing time, or fail completely.
+
+- **Single-Threaded Grouping**: While parsing runs in a Web Worker, the Union-Find algorithm is single-threaded. The spatial hash loop is difficult to parallelize.
+
+- **Worker Data Transfer**: Data is copied between main thread and worker (no `SharedArrayBuffer`). For very large datasets, this could be optimized with transferable objects or shared memory.
+
+- **No LOD or Culling**: All cuboids are rendered at full detail regardless of camera distance. Very large scenes may benefit from level-of-detail or frustum culling.
