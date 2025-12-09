@@ -1,4 +1,4 @@
-import type { Box, ComputeResult } from "../cuboids/types";
+import type { Box } from "../cuboids/types";
 import { Signal } from "./Signal";
 
 export class Api {

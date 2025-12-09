@@ -67,6 +67,7 @@ export const buildGroupsStreaming = (
   }
 };
 
+// @ts-ignore
 const areFaceAdjacent = (a: Cuboid, b: Cuboid): boolean => {
   const { X1, Y1, Z1, X2, Y2, Z2 } = CuboidIndex;
 
@@ -91,6 +92,7 @@ const areFaceAdjacent = (a: Cuboid, b: Cuboid): boolean => {
   return false;
 };
 
+// @ts-ignore
 const areFaceAdjacentB = (a: Cuboid, b: Cuboid): boolean => {
   // Inline indices (avoid object destructuring in hot path)
   const ax1 = a[1],
@@ -125,6 +127,7 @@ const areFaceAdjacentB = (a: Cuboid, b: Cuboid): boolean => {
 };
 
 // Fully inlined, no variables
+// @ts-ignore
 const areFaceAdjacentC = (a: Cuboid, b: Cuboid): boolean => {
   // X-face
   if (
