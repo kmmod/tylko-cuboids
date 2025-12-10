@@ -9,6 +9,20 @@ export class BoxesResult {
   readonly offsets: Uint32Array;
 }
 
+export class CuboidData {
+  private constructor();
+  free(): void;
+  [Symbol.dispose](): void;
+  /**
+   * Get the cuboids array as Uint16Array
+   */
+  readonly cuboidsArray: Uint16Array;
+  /**
+   * Get groups as a JavaScript Map<number, number[]>
+   */
+  readonly groups: Map<any, any>;
+}
+
 export class CuboidProcessor {
   free(): void;
   [Symbol.dispose](): void;
@@ -20,10 +34,24 @@ export class CuboidProcessor {
   get_cuboid_count(): number;
 }
 
+/**
+ * Generate hash maps and find connected cuboid groups from CSV data
+ *
+ * CSV format: id;x1;y1;z1;x2;y2;z2 per line
+ *
+ * Returns CuboidData matching TypeScript type:
+ * { groups: Map<number, number[]>, cuboidsArray: Uint16Array }
+ */
+export function generateHashMaps(csv: string): CuboidData;
+
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
 export interface InitOutput {
   readonly memory: WebAssembly.Memory;
+  readonly __wbg_cuboiddata_free: (a: number, b: number) => void;
+  readonly cuboiddata_cuboidsArray: (a: number) => any;
+  readonly cuboiddata_groups: (a: number) => any;
+  readonly generateHashMaps: (a: number, b: number) => number;
   readonly __wbg_boxesresult_free: (a: number, b: number) => void;
   readonly boxesresult_data: (a: number) => any;
   readonly boxesresult_offsets: (a: number) => [number, number];
@@ -35,9 +63,9 @@ export interface InitOutput {
   readonly cuboidprocessor_build_groups: (a: number) => number;
   readonly cuboidprocessor_get_cuboid_count: (a: number) => number;
   readonly __wbindgen_externrefs: WebAssembly.Table;
-  readonly __wbindgen_free: (a: number, b: number, c: number) => void;
   readonly __wbindgen_malloc: (a: number, b: number) => number;
   readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
+  readonly __wbindgen_free: (a: number, b: number, c: number) => void;
   readonly __wbindgen_start: () => void;
 }
 

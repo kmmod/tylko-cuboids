@@ -11,7 +11,7 @@ import { type Box } from "./types";
 
 const useSpatialHashing = true;
 const testHashMapsA = false;
-const testHashMapsB = false;
+const testHashMapsB = true;
 
 self.onmessage = (e: MessageEvent<string>) => {
   const start = performance.now();

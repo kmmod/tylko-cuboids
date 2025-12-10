@@ -5,6 +5,11 @@ function getArrayF64FromWasm0(ptr, len) {
     return getFloat64ArrayMemory0().subarray(ptr / 8, ptr / 8 + len);
 }
 
+function getArrayU16FromWasm0(ptr, len) {
+    ptr = ptr >>> 0;
+    return getUint16ArrayMemory0().subarray(ptr / 2, ptr / 2 + len);
+}
+
 function getArrayU32FromWasm0(ptr, len) {
     ptr = ptr >>> 0;
     return getUint32ArrayMemory0().subarray(ptr / 4, ptr / 4 + len);
@@ -21,6 +26,14 @@ function getFloat64ArrayMemory0() {
 function getStringFromWasm0(ptr, len) {
     ptr = ptr >>> 0;
     return decodeText(ptr, len);
+}
+
+let cachedUint16ArrayMemory0 = null;
+function getUint16ArrayMemory0() {
+    if (cachedUint16ArrayMemory0 === null || cachedUint16ArrayMemory0.byteLength === 0) {
+        cachedUint16ArrayMemory0 = new Uint16Array(wasm.memory.buffer);
+    }
+    return cachedUint16ArrayMemory0;
 }
 
 let cachedUint32ArrayMemory0 = null;
@@ -109,6 +122,10 @@ const BoxesResultFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_boxesresult_free(ptr >>> 0, 1));
 
+const CuboidDataFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_cuboiddata_free(ptr >>> 0, 1));
+
 const CuboidProcessorFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_cuboidprocessor_free(ptr >>> 0, 1));
@@ -149,6 +166,43 @@ export class BoxesResult {
     }
 }
 if (Symbol.dispose) BoxesResult.prototype[Symbol.dispose] = BoxesResult.prototype.free;
+
+export class CuboidData {
+    static __wrap(ptr) {
+        ptr = ptr >>> 0;
+        const obj = Object.create(CuboidData.prototype);
+        obj.__wbg_ptr = ptr;
+        CuboidDataFinalization.register(obj, obj.__wbg_ptr, obj);
+        return obj;
+    }
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        CuboidDataFinalization.unregister(this);
+        return ptr;
+    }
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_cuboiddata_free(ptr, 0);
+    }
+    /**
+     * Get the cuboids array as Uint16Array
+     * @returns {Uint16Array}
+     */
+    get cuboidsArray() {
+        const ret = wasm.cuboiddata_cuboidsArray(this.__wbg_ptr);
+        return ret;
+    }
+    /**
+     * Get groups as a JavaScript Map<number, number[]>
+     * @returns {Map<any, any>}
+     */
+    get groups() {
+        const ret = wasm.cuboiddata_groups(this.__wbg_ptr);
+        return ret;
+    }
+}
+if (Symbol.dispose) CuboidData.prototype[Symbol.dispose] = CuboidData.prototype.free;
 
 export class CuboidProcessor {
     __destroy_into_raw() {
@@ -212,6 +266,23 @@ export class CuboidProcessor {
 }
 if (Symbol.dispose) CuboidProcessor.prototype[Symbol.dispose] = CuboidProcessor.prototype.free;
 
+/**
+ * Generate hash maps and find connected cuboid groups from CSV data
+ *
+ * CSV format: id;x1;y1;z1;x2;y2;z2 per line
+ *
+ * Returns CuboidData matching TypeScript type:
+ * { groups: Map<number, number[]>, cuboidsArray: Uint16Array }
+ * @param {string} csv
+ * @returns {CuboidData}
+ */
+export function generateHashMaps(csv) {
+    const ptr0 = passStringToWasm0(csv, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.generateHashMaps(ptr0, len0);
+    return CuboidData.__wrap(ret);
+}
+
 const EXPECTED_RESPONSE_TYPES = new Set(['basic', 'cors', 'default']);
 
 async function __wbg_load(module, imports) {
@@ -250,8 +321,33 @@ function __wbg_get_imports() {
     imports.wbg.__wbg___wbindgen_throw_dd24417ed36fc46e = function(arg0, arg1) {
         throw new Error(getStringFromWasm0(arg0, arg1));
     };
+    imports.wbg.__wbg_new_25f239778d6112b9 = function() {
+        const ret = new Array();
+        return ret;
+    };
+    imports.wbg.__wbg_new_b546ae120718850e = function() {
+        const ret = new Map();
+        return ret;
+    };
     imports.wbg.__wbg_new_from_slice_9a48ef80d2a51f94 = function(arg0, arg1) {
         const ret = new Float64Array(getArrayF64FromWasm0(arg0, arg1));
+        return ret;
+    };
+    imports.wbg.__wbg_new_from_slice_fc4260e3a67db282 = function(arg0, arg1) {
+        const ret = new Uint16Array(getArrayU16FromWasm0(arg0, arg1));
+        return ret;
+    };
+    imports.wbg.__wbg_push_7d9be8f38fc13975 = function(arg0, arg1) {
+        const ret = arg0.push(arg1);
+        return ret;
+    };
+    imports.wbg.__wbg_set_efaaf145b9377369 = function(arg0, arg1, arg2) {
+        const ret = arg0.set(arg1, arg2);
+        return ret;
+    };
+    imports.wbg.__wbindgen_cast_d6cd19b81560fd6e = function(arg0) {
+        // Cast intrinsic for `F64 -> Externref`.
+        const ret = arg0;
         return ret;
     };
     imports.wbg.__wbindgen_init_externref_table = function() {
@@ -271,6 +367,7 @@ function __wbg_finalize_init(instance, module) {
     wasm = instance.exports;
     __wbg_init.__wbindgen_wasm_module = module;
     cachedFloat64ArrayMemory0 = null;
+    cachedUint16ArrayMemory0 = null;
     cachedUint32ArrayMemory0 = null;
     cachedUint8ArrayMemory0 = null;
 

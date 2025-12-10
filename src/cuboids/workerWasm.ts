@@ -1,6 +1,9 @@
+import type { CuboidData } from "./compute/otherIdeas.ts/hashMapsB";
 import type { WasmWorkerMessage } from "./types";
 
 let wasm: typeof import("../lib/wasm-compute/wasm_cuboids") | null = null;
+
+const testHashMaps = true;
 
 const warmupWasm = async () => {
   if (!wasm) {
@@ -29,6 +32,23 @@ const compute = async (csv: string) => {
 
   if (!wasm) {
     await warmupWasm();
+  }
+
+  if (testHashMaps) {
+    const tB = performance.now();
+    const result = wasm!.generateHashMaps(csv);
+
+    const data: CuboidData = {
+      cuboidsArray: result.cuboidsArray,
+      groups: result.groups,
+    };
+
+    self.postMessage({ type: "cuboids", data });
+    console.log(`generateHashMapsB: ${performance.now() - tB}ms`);
+
+    const message = `Processed ${data.cuboidsArray.length / 7} cuboids. Time: ${(performance.now() - tB).toFixed(2)} ms. Found ${data.groups.size} groups.`;
+    self.postMessage({ type: "summary", message });
+    return;
   }
 
   const start = performance.now();

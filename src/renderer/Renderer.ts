@@ -1,9 +1,11 @@
 import {
   AmbientLight,
+  Box3,
   Color,
   DirectionalLight,
   PerspectiveCamera,
   Scene,
+  Vector3,
   WebGLRenderer,
 } from "three";
 import { OrbitControls } from "three/examples/jsm/Addons.js";
@@ -38,6 +40,7 @@ export class Renderer {
 
     this.api.onCuboidsComputed.connect((cuboidData) => {
       this.meshManager.addCuboids(this.scene, cuboidData);
+      this.updateCameraToScene();
     });
 
     // Clear existing meshes when new data is loaded
@@ -127,6 +130,24 @@ export class Renderer {
       centerZ + distance,
     );
     this.camera.lookAt(centerX, centerY, centerZ);
+    this.camera.updateProjectionMatrix();
+  }
+
+  private updateCameraToScene(): void {
+    const box = new Box3().setFromObject(this.scene);
+    const center = box.getCenter(new Vector3());
+    const size = box.getSize(new Vector3());
+    const maxDimension = Math.max(size.x, size.y, size.z);
+    const distance = maxDimension * 1.0;
+    this.controls.target.copy(center);
+    this.controls.update();
+
+    this.camera.position.set(
+      center.x + distance,
+      center.y + distance,
+      center.z + distance,
+    );
+    this.camera.lookAt(center);
     this.camera.updateProjectionMatrix();
   }
 
