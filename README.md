@@ -109,22 +109,22 @@ Coordinate Indexing: Instead of spatial grid cells, cuboids are indexed by their
 
 Iterative Flood-Fill: Starting from an unvisited cuboid, the algorithm uses a stack-based flood-fill to discover all connected cuboids. For each cuboid, it queries the coordinate maps to find candidates where:
 
-A neighbor's max coordinate equals this cuboid's min (touching on negative side)
-A neighbor's min coordinate equals this cuboid's max (touching on positive side)
+- A neighbor's max coordinate equals this cuboid's min (touching on negative side)
+- A neighbor's min coordinate equals this cuboid's max (touching on positive side)
 
 Candidates are then verified for actual face overlap before being added to the group.
 
 ### Optimized Data Structures:
 
-Pre-allocated buffers to minimize runtime allocations
-Flat Uint16Array for cuboid data to enable efficient interop
+- Pre-allocated buffers to minimize runtime allocations
+- Flat Uint16Array for cuboid data to enable efficient interop
 
 ### Complexity
 
-Index building: O(n) where n is the number of cuboids
-Group discovery: O(n × k) where k is the average number of coordinate-matched candidates per cuboid
-Best case: O(n) when cuboids have diverse coordinates (few candidates per lookup)
-Worst case: O(n²) when many cuboids share the same boundary coordinates
+- Index building: O(n) where n is the number of cuboids
+- Group discovery: O(n × k) where k is the average number of coordinate-matched candidates per cuboid
+- Best case: O(n) when cuboids have diverse coordinates (few candidates per lookup)
+- Worst case: O(n²) when many cuboids share the same boundary coordinates
 
 ## Architecture
 
