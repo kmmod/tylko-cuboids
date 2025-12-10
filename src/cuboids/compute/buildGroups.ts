@@ -66,6 +66,64 @@ export const buildGroupsStreaming = (
   }
 };
 
+export const buildGroupsNaiveStreaming = (
+  cuboids: Cuboid[],
+  onGroup: (boxes: Box[]) => void,
+): void => {
+  // Compare each cuboid to each one (On^2) and return boxes sorted by groups
+  const { X1, Y1, Z1, X2, Y2, Z2 } = CuboidIndex;
+  const n = cuboids.length;
+  const uf = new UnionFind(n);
+
+  const t0 = performance.now();
+  // Naive O(n²) comparison - check every pair
+  for (let i = 0; i < n; i++) {
+    for (let j = i + 1; j < n; j++) {
+      if (areFaceAdjacentC(cuboids[i], cuboids[j])) {
+        uf.union(i, j);
+      }
+    }
+  }
+  console.log(`buildUnions (naive): ${performance.now() - t0}ms`);
+
+  // Collect groups
+  const groupMap = new Map<number, number[]>();
+  for (let i = 0; i < n; i++) {
+    const root = uf.find(i);
+    if (!groupMap.has(root)) groupMap.set(root, []);
+    groupMap.get(root)!.push(i);
+  }
+
+  // Stream each group
+  let groupId = 0;
+  for (const indices of groupMap.values()) {
+    if (indices.length < 2) continue;
+
+    const t1 = performance.now();
+    // Build boxes for this group
+    const boxes: Box[] = new Array(indices.length);
+    for (let i = 0; i < indices.length; i++) {
+      const c = cuboids[indices[i]];
+      const width = c[X2] - c[X1];
+      const height = c[Y2] - c[Y1];
+      const depth = c[Z2] - c[Z1];
+      boxes[i] = [
+        groupId,
+        c[X1] + width / 2,
+        c[Y1] + height / 2,
+        c[Z1] + depth / 2,
+        width,
+        height,
+        depth,
+      ];
+    }
+
+    onGroup(boxes);
+    groupId++;
+    console.log(`buildGroup ${groupId}: ${performance.now() - t1}ms`);
+  }
+};
+
 // @ts-ignore
 const areFaceAdjacentA = (a: Cuboid, b: Cuboid): boolean => {
   const { X1, Y1, Z1, X2, Y2, Z2 } = CuboidIndex;

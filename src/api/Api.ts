@@ -1,3 +1,4 @@
+import type { CuboidData } from "../cuboids/compute/otherIdeas.ts/hashMapsB";
 import type { Box } from "../cuboids/types";
 import { Signal } from "./Signal";
 
@@ -11,4 +12,6 @@ export class Api {
 
   public readonly onBoundingBoxSet = new Signal<[box: Box]>();
   public readonly onBoxesComputed = new Signal<[boxes: Box[]]>();
+
+  public readonly onCuboidsComputed = new Signal<[cuboidData: CuboidData]>();
 }

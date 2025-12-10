@@ -36,6 +36,10 @@ export class Renderer {
       this.meshManager.addBoxes(this.scene, boxes);
     });
 
+    this.api.onCuboidsComputed.connect((cuboidData) => {
+      this.meshManager.addCuboids(this.scene, cuboidData);
+    });
+
     // Clear existing meshes when new data is loaded
     this.api.onDataLoaded.connect(() => {
       this.meshManager.dispose(this.scene);

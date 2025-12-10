@@ -53,6 +53,9 @@ export class Cuboids {
       case "boxes":
         this.api.onBoxesComputed.emit(e.data.boxes);
         break;
+      case "cuboids":
+        this.api.onCuboidsComputed.emit(e.data.data);
+        break;
       case "summary":
         this.api.onInfoMessage.emit(e.data.message);
         break;

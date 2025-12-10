@@ -1,10 +1,14 @@
 // Pros: Worker offloads heavy computation from the main thread
 // Pros: Easy to replace worker implementation with WASM module
 // Cons: Without transferrable objects, data has to be copied between threads
+
+import type { CuboidData } from "./compute/otherIdeas.ts/hashMapsB";
+
 // Using discriminated unions to fake proper enums with data
 export type WorkerResult =
   | { type: "boundingBox"; boundingBox: Box }
   | { type: "boxes"; boxes: Box[] }
+  | { type: "cuboids"; data: CuboidData }
   | { type: "summary"; message: string }
   | { type: "finished" };
 
