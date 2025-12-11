@@ -5,12 +5,27 @@ A WebGL 2 visualization of cuboid groups defined in CSV files. Built with Vite 7
 
 Live version: https://tylko-cuboids.netlify.app/
 
-## Prerequisites
+
+## Results:
+
+For 5000 cuboids, average alogorithm runtime (macOS M1, 16GB RAM, Chrome): 
+- Javascript: ~15ms
+- Rust(wasm): ~6ms
+
+#
+Performance graph: 
+- the actual file reading by browser (1) takes longer time than compute (2) itself, while rendering is instantenous. (3)
+
+![Performance Graph](./docs/cuboidPerformance.png)
+#
+
+
+## Setup & Run Instructions
+
+### Prerequisites
 
 - Node.js 22+
 - pnpm 9+
-
-## Setup & Run Instructions
 
 ### Installation
 
