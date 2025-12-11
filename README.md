@@ -9,7 +9,7 @@ Live version: https://tylko-cuboids.netlify.app/
 ## Results:
 
 For 5000 cuboids, average alogorithm runtime (macOS M1, 16GB RAM, Chrome): 
-- Javascript: ~15ms
+- Javascript: ~14ms
 - Rust(wasm): ~6ms
 
 #
