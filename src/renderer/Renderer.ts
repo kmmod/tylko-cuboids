@@ -10,7 +10,6 @@ import {
 } from "three";
 import { OrbitControls } from "three/examples/jsm/Addons.js";
 import { Api } from "../api/Api";
-import { BoxIndex, type Box } from "../cuboids/types";
 import { MeshManager } from "./MeshManager";
 
 const container = "#app";
@@ -28,15 +27,6 @@ export class Renderer {
     this.api = api;
     this.addEventListeners();
     this.render();
-
-    this.api.onBoundingBoxSet.connect((boundingBox: Box) => {
-      this.updateCamera(boundingBox);
-      this.updateScale(boundingBox);
-    });
-
-    this.api.onBoxesComputed.connect((boxes: Box[]) => {
-      this.meshManager.addBoxes(this.scene, boxes);
-    });
 
     this.api.onCuboidsComputed.connect((cuboidData) => {
       this.meshManager.addCuboids(this.scene, cuboidData);
@@ -101,36 +91,10 @@ export class Renderer {
     window.addEventListener("resize", this.onWindowResize.bind(this), false);
   }
 
-  // Not used currently, but kept for future reference
-  // private removeEventListeners(): void {
-  //   window.removeEventListener("resize", this.onWindowResize.bind(this), false);
-  // }
-
-  private updateCamera(boundingBox: Box): void {
-    const { X, Y, Z, WIDTH, DEPTH, HEIGHT } = BoxIndex;
-
-    const centerX = boundingBox[X];
-    const centerY = boundingBox[Y];
-    const centerZ = boundingBox[Z];
-    this.controls.target.set(centerX, centerY, centerZ);
-    this.controls.update();
-
-    // distance based on the largest dimension of the bounding box
-    const maxDimension = Math.max(
-      boundingBox[WIDTH],
-      boundingBox[HEIGHT],
-      boundingBox[DEPTH],
-    );
-    const distance = maxDimension * 0.6; // factor to ensure the box fits well in view
-
-    // position the camera
-    this.camera.position.set(
-      centerX + distance,
-      centerY + distance,
-      centerZ + distance,
-    );
-    this.camera.lookAt(centerX, centerY, centerZ);
+  private onWindowResize(): void {
+    this.camera.aspect = window.innerWidth / window.innerHeight;
     this.camera.updateProjectionMatrix();
+    this.renderer.setSize(window.innerWidth, window.innerHeight);
   }
 
   private updateCameraToScene(): void {
@@ -151,22 +115,11 @@ export class Renderer {
     this.camera.updateProjectionMatrix();
   }
 
-  private updateScale(boundingBox: Box): void {
-    const { WIDTH, DEPTH, HEIGHT } = BoxIndex;
-    const maxDimension = Math.max(
-      boundingBox[WIDTH],
-      boundingBox[HEIGHT],
-      boundingBox[DEPTH],
-    );
-
-    this.meshManager.setTextureScale(20 / maxDimension);
-  }
-
-  private onWindowResize(): void {
-    this.camera.aspect = window.innerWidth / window.innerHeight;
-    this.camera.updateProjectionMatrix();
-    this.renderer.setSize(window.innerWidth, window.innerHeight);
-  }
+  private render = () => {
+    requestAnimationFrame(this.render);
+    this.controls.update();
+    this.renderer.render(this.scene, this.camera);
+  };
 
   // Not used currently, but kept for future reference
   // private dispose(): void {
@@ -174,10 +127,9 @@ export class Renderer {
   //   this.controls.dispose();
   //   this.renderer.dispose();
   // }
-
-  private render = () => {
-    requestAnimationFrame(this.render);
-    this.controls.update();
-    this.renderer.render(this.scene, this.camera);
-  };
+  //
+  // Not used currently, but kept for future reference
+  // private removeEventListeners(): void {
+  //   window.removeEventListener("resize", this.onWindowResize.bind(this), false);
+  // }
 }

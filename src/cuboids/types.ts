@@ -2,12 +2,13 @@
 // Pros: Easy to replace worker implementation with WASM module
 // Cons: Without transferrable objects, data has to be copied between threads
 
-import type { CuboidData } from "./compute/otherIdeas.ts/hashMapsB";
+export type CuboidData = {
+  groups: Map<number, number[]>;
+  cuboidsArray: Uint16Array;
+};
 
 // Using discriminated unions to fake proper enums with data
 export type WorkerResult =
-  | { type: "boundingBox"; boundingBox: Box }
-  | { type: "boxes"; boxes: Box[] }
   | { type: "cuboids"; data: CuboidData }
   | { type: "summary"; message: string }
   | { type: "finished" };
@@ -15,11 +16,6 @@ export type WorkerResult =
 export type WasmWorkerMessage =
   | { type: "warmup" }
   | { type: "compute"; csv: string };
-
-export interface ConvertCuboidsResult {
-  boxes: Box[];
-  boundingBox: Box;
-}
 
 // Cuboid index types for better readability
 export const CuboidIndex = {
@@ -43,26 +39,4 @@ export type Cuboid = [
   x2: number,
   y2: number,
   z2: number,
-];
-
-export const BoxIndex = {
-  GROUP_ID: 0,
-  X: 1,
-  Y: 2,
-  Z: 3,
-  WIDTH: 4,
-  HEIGHT: 5,
-  DEPTH: 6,
-};
-
-export type BoxIndex = (typeof BoxIndex)[keyof typeof BoxIndex];
-
-export type Box = [
-  groupId: number,
-  x: number,
-  y: number,
-  z: number,
-  width: number,
-  height: number,
-  depth: number,
 ];

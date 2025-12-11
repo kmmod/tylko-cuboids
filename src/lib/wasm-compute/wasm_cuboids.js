@@ -1,26 +1,8 @@
 let wasm;
 
-function getArrayF64FromWasm0(ptr, len) {
-    ptr = ptr >>> 0;
-    return getFloat64ArrayMemory0().subarray(ptr / 8, ptr / 8 + len);
-}
-
 function getArrayU16FromWasm0(ptr, len) {
     ptr = ptr >>> 0;
     return getUint16ArrayMemory0().subarray(ptr / 2, ptr / 2 + len);
-}
-
-function getArrayU32FromWasm0(ptr, len) {
-    ptr = ptr >>> 0;
-    return getUint32ArrayMemory0().subarray(ptr / 4, ptr / 4 + len);
-}
-
-let cachedFloat64ArrayMemory0 = null;
-function getFloat64ArrayMemory0() {
-    if (cachedFloat64ArrayMemory0 === null || cachedFloat64ArrayMemory0.byteLength === 0) {
-        cachedFloat64ArrayMemory0 = new Float64Array(wasm.memory.buffer);
-    }
-    return cachedFloat64ArrayMemory0;
 }
 
 function getStringFromWasm0(ptr, len) {
@@ -34,14 +16,6 @@ function getUint16ArrayMemory0() {
         cachedUint16ArrayMemory0 = new Uint16Array(wasm.memory.buffer);
     }
     return cachedUint16ArrayMemory0;
-}
-
-let cachedUint32ArrayMemory0 = null;
-function getUint32ArrayMemory0() {
-    if (cachedUint32ArrayMemory0 === null || cachedUint32ArrayMemory0.byteLength === 0) {
-        cachedUint32ArrayMemory0 = new Uint32Array(wasm.memory.buffer);
-    }
-    return cachedUint32ArrayMemory0;
 }
 
 let cachedUint8ArrayMemory0 = null;
@@ -118,54 +92,9 @@ if (!('encodeInto' in cachedTextEncoder)) {
 
 let WASM_VECTOR_LEN = 0;
 
-const BoxesResultFinalization = (typeof FinalizationRegistry === 'undefined')
-    ? { register: () => {}, unregister: () => {} }
-    : new FinalizationRegistry(ptr => wasm.__wbg_boxesresult_free(ptr >>> 0, 1));
-
 const CuboidDataFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_cuboiddata_free(ptr >>> 0, 1));
-
-const CuboidProcessorFinalization = (typeof FinalizationRegistry === 'undefined')
-    ? { register: () => {}, unregister: () => {} }
-    : new FinalizationRegistry(ptr => wasm.__wbg_cuboidprocessor_free(ptr >>> 0, 1));
-
-export class BoxesResult {
-    static __wrap(ptr) {
-        ptr = ptr >>> 0;
-        const obj = Object.create(BoxesResult.prototype);
-        obj.__wbg_ptr = ptr;
-        BoxesResultFinalization.register(obj, obj.__wbg_ptr, obj);
-        return obj;
-    }
-    __destroy_into_raw() {
-        const ptr = this.__wbg_ptr;
-        this.__wbg_ptr = 0;
-        BoxesResultFinalization.unregister(this);
-        return ptr;
-    }
-    free() {
-        const ptr = this.__destroy_into_raw();
-        wasm.__wbg_boxesresult_free(ptr, 0);
-    }
-    /**
-     * @returns {Float64Array}
-     */
-    get data() {
-        const ret = wasm.boxesresult_data(this.__wbg_ptr);
-        return ret;
-    }
-    /**
-     * @returns {Uint32Array}
-     */
-    get offsets() {
-        const ret = wasm.boxesresult_offsets(this.__wbg_ptr);
-        var v1 = getArrayU32FromWasm0(ret[0], ret[1]).slice();
-        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
-        return v1;
-    }
-}
-if (Symbol.dispose) BoxesResult.prototype[Symbol.dispose] = BoxesResult.prototype.free;
 
 export class CuboidData {
     static __wrap(ptr) {
@@ -204,68 +133,6 @@ export class CuboidData {
 }
 if (Symbol.dispose) CuboidData.prototype[Symbol.dispose] = CuboidData.prototype.free;
 
-export class CuboidProcessor {
-    __destroy_into_raw() {
-        const ptr = this.__wbg_ptr;
-        this.__wbg_ptr = 0;
-        CuboidProcessorFinalization.unregister(this);
-        return ptr;
-    }
-    free() {
-        const ptr = this.__destroy_into_raw();
-        wasm.__wbg_cuboidprocessor_free(ptr, 0);
-    }
-    constructor() {
-        const ret = wasm.cuboidprocessor_new();
-        this.__wbg_ptr = ret >>> 0;
-        CuboidProcessorFinalization.register(this, this.__wbg_ptr, this);
-        return this;
-    }
-    /**
-     * @param {string} csv
-     * @returns {string}
-     */
-    parse_csv(csv) {
-        let deferred2_0;
-        let deferred2_1;
-        try {
-            const ptr0 = passStringToWasm0(csv, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-            const len0 = WASM_VECTOR_LEN;
-            const ret = wasm.cuboidprocessor_parse_csv(this.__wbg_ptr, ptr0, len0);
-            deferred2_0 = ret[0];
-            deferred2_1 = ret[1];
-            return getStringFromWasm0(ret[0], ret[1]);
-        } finally {
-            wasm.__wbindgen_free(deferred2_0, deferred2_1, 1);
-        }
-    }
-    /**
-     * @returns {Float64Array}
-     */
-    compute_bounding_box() {
-        const ret = wasm.cuboidprocessor_compute_bounding_box(this.__wbg_ptr);
-        return ret;
-    }
-    build_spatial_hash() {
-        wasm.cuboidprocessor_build_spatial_hash(this.__wbg_ptr);
-    }
-    /**
-     * @returns {BoxesResult}
-     */
-    build_groups() {
-        const ret = wasm.cuboidprocessor_build_groups(this.__wbg_ptr);
-        return BoxesResult.__wrap(ret);
-    }
-    /**
-     * @returns {number}
-     */
-    get_cuboid_count() {
-        const ret = wasm.cuboidprocessor_get_cuboid_count(this.__wbg_ptr);
-        return ret >>> 0;
-    }
-}
-if (Symbol.dispose) CuboidProcessor.prototype[Symbol.dispose] = CuboidProcessor.prototype.free;
-
 /**
  * Generate hash maps and find connected cuboid groups from CSV data
  *
@@ -276,10 +143,10 @@ if (Symbol.dispose) CuboidProcessor.prototype[Symbol.dispose] = CuboidProcessor.
  * @param {string} csv
  * @returns {CuboidData}
  */
-export function generateHashMaps(csv) {
+export function groupCuboids(csv) {
     const ptr0 = passStringToWasm0(csv, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
     const len0 = WASM_VECTOR_LEN;
-    const ret = wasm.generateHashMaps(ptr0, len0);
+    const ret = wasm.groupCuboids(ptr0, len0);
     return CuboidData.__wrap(ret);
 }
 
@@ -329,10 +196,6 @@ function __wbg_get_imports() {
         const ret = new Map();
         return ret;
     };
-    imports.wbg.__wbg_new_from_slice_9a48ef80d2a51f94 = function(arg0, arg1) {
-        const ret = new Float64Array(getArrayF64FromWasm0(arg0, arg1));
-        return ret;
-    };
     imports.wbg.__wbg_new_from_slice_fc4260e3a67db282 = function(arg0, arg1) {
         const ret = new Uint16Array(getArrayU16FromWasm0(arg0, arg1));
         return ret;
@@ -366,9 +229,7 @@ function __wbg_get_imports() {
 function __wbg_finalize_init(instance, module) {
     wasm = instance.exports;
     __wbg_init.__wbindgen_wasm_module = module;
-    cachedFloat64ArrayMemory0 = null;
     cachedUint16ArrayMemory0 = null;
-    cachedUint32ArrayMemory0 = null;
     cachedUint8ArrayMemory0 = null;
 
 

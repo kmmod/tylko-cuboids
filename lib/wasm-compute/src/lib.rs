@@ -1,95 +1,209 @@
-use js_sys::Float64Array;
+use js_sys::{Array, Map, Number, Uint16Array};
+use rustc_hash::FxHashMap;
 use wasm_bindgen::prelude::*;
 
-use crate::compute::{
-    bounding_box::compute,
-    build_groups::build_all_groups,
-    parse_csv::parse,
-    spatial_hash::{build_spatial_hash, SpatialHash},
-    types::{Box3D, Cuboid},
-};
-
-mod compute;
-
+// CuboidData - Matches TypeScript type:
+// export type CuboidData = {
+//   groups: Map<number, number[]>;
+//   cuboidsArray: Uint16Array;
+// };
 #[wasm_bindgen]
-pub struct BoxesResult {
-    data: Vec<f64>,    // flat: [box0, box1, box2, ...]
-    offsets: Vec<u32>, // group start indices: [0, 5, 12, ...] (in box count, not f64 count)
+pub struct CuboidData {
+    /// Internal storage for cuboids
+    cuboids_array: Vec<u16>,
+    /// Internal storage for groups
+    groups: FxHashMap<u32, Vec<u32>>,
 }
 
 #[wasm_bindgen]
-impl BoxesResult {
+impl CuboidData {
+    /// Get the cuboids array as Uint16Array
+    #[wasm_bindgen(getter, js_name = "cuboidsArray")]
+    pub fn cuboids_array(&self) -> Uint16Array {
+        Uint16Array::from(&self.cuboids_array[..])
+    }
+
+    /// Get groups as a JavaScript Map<number, number[]>
     #[wasm_bindgen(getter)]
-    pub fn data(&self) -> Float64Array {
-        Float64Array::from(&self.data[..])
-    }
-
-    #[wasm_bindgen(getter)]
-    pub fn offsets(&self) -> Vec<u32> {
-        self.offsets.clone()
-    }
-}
-
-impl From<Vec<Vec<Box3D>>> for BoxesResult {
-    fn from(groups: Vec<Vec<Box3D>>) -> Self {
-        let total_boxes: usize = groups.iter().map(|g| g.len()).sum();
-        let mut data = Vec::with_capacity(total_boxes * 7);
-        let mut offsets = Vec::with_capacity(groups.len() + 1);
-
-        offsets.push(0);
-        for group in groups {
-            for box3d in group {
-                data.extend_from_slice(&box3d);
+    pub fn groups(&self) -> Map {
+        let map = Map::new();
+        for (&group_id, cuboid_ids) in &self.groups {
+            let js_array = Array::new();
+            for &id in cuboid_ids {
+                js_array.push(&Number::from(id));
             }
-            offsets.push((data.len() / 7) as u32);
+            map.set(&Number::from(group_id), &js_array);
         }
-
-        Self { data, offsets }
+        map
     }
 }
 
-#[wasm_bindgen]
-pub struct CuboidProcessor {
-    cuboids: Vec<Cuboid>,
-    boxes: Vec<Box3D>,
-    spatial_hash: SpatialHash,
-}
+const OFFSET: usize = 7;
 
-#[wasm_bindgen]
-impl CuboidProcessor {
-    #[wasm_bindgen(constructor)]
-    pub fn new() -> CuboidProcessor {
-        CuboidProcessor {
-            cuboids: Vec::new(),
-            boxes: Vec::new(),
-            spatial_hash: SpatialHash::default(),
-        }
+/// Check if two cuboids are face-adjacent
+/// Takes slices directly to avoid repeated index calculations
+#[inline(always)]
+fn are_face_adjacent(a: &[u16], b: &[u16]) -> bool {
+    // a and b are slices of length OFFSET: [id, x1, y1, z1, x2, y2, z2]
+    // Indices: 0=id, 1=x1, 2=y1, 3=z1, 4=x2, 5=y2, 6=z2
+
+    // X-face: x coordinates touch, y and z ranges overlap
+    if (a[4] == b[1] || b[4] == a[1]) && a[5] > b[2] && b[5] > a[2] && a[6] > b[3] && b[6] > a[3] {
+        return true;
     }
 
-    pub fn parse_csv(&mut self, csv: &str) -> String {
-        match parse(csv) {
-            Ok(cuboids) => {
-                self.cuboids = cuboids;
-                "CSV parsed successfully".to_string()
+    // Y-face: y coordinates touch, x and z ranges overlap
+    if (a[5] == b[2] || b[5] == a[2]) && a[4] > b[1] && b[4] > a[1] && a[6] > b[3] && b[6] > a[3] {
+        return true;
+    }
+
+    // Z-face: z coordinates touch, x and y ranges overlap
+    if (a[6] == b[3] || b[6] == a[3]) && a[4] > b[1] && b[4] > a[1] && a[5] > b[2] && b[5] > a[2] {
+        return true;
+    }
+
+    false
+}
+
+/// Find all connected cuboids starting from a given cuboid (iterative to avoid stack overflow)
+/// Uses a pre-allocated visited array instead of HashSet for better performance
+#[inline]
+fn find_connected(
+    cuboids_array: &[u16],
+    start_id: usize,
+    visited: &mut [bool],
+    maps1: &[FxHashMap<u16, Vec<usize>>; 3],
+    maps2: &[FxHashMap<u16, Vec<usize>>; 3],
+) -> Vec<usize> {
+    let mut result = Vec::with_capacity(64); // Pre-allocate reasonable capacity
+    let mut stack = Vec::with_capacity(64);
+    stack.push(start_id);
+
+    while let Some(cuboid_id) = stack.pop() {
+        // Use direct indexing - faster than .get() for bool slice
+        if visited[cuboid_id] {
+            continue;
+        }
+        visited[cuboid_id] = true;
+        result.push(cuboid_id);
+
+        // Get slice for current cuboid once
+        let c_start = cuboid_id * OFFSET;
+        let c = &cuboids_array[c_start..c_start + OFFSET];
+
+        // Check all 3 axes (0=X, 1=Y, 2=Z)
+        for axis in 0..3 {
+            let val1 = c[1 + axis];
+            let val2 = c[4 + axis];
+
+            // Find cuboids where their val2 equals this cuboid's val1
+            if let Some(neighbors) = maps2[axis].get(&val1) {
+                for &neighbor_id in neighbors {
+                    if !visited[neighbor_id] {
+                        let n_start = neighbor_id * OFFSET;
+                        let n = &cuboids_array[n_start..n_start + OFFSET];
+                        if are_face_adjacent(c, n) {
+                            stack.push(neighbor_id);
+                        }
+                    }
+                }
             }
-            Err(err) => err,
+
+            // Find cuboids where their val1 equals this cuboid's val2
+            if let Some(neighbors) = maps1[axis].get(&val2) {
+                for &neighbor_id in neighbors {
+                    if !visited[neighbor_id] {
+                        let n_start = neighbor_id * OFFSET;
+                        let n = &cuboids_array[n_start..n_start + OFFSET];
+                        if are_face_adjacent(c, n) {
+                            stack.push(neighbor_id);
+                        }
+                    }
+                }
+            }
         }
     }
 
-    pub fn compute_bounding_box(&self) -> Float64Array {
-        let bbox = compute(&self.cuboids);
-        Float64Array::from(&bbox[..])
+    result
+}
+
+/// Generate hash maps and find connected cuboid groups from CSV data
+///
+/// CSV format: id;x1;y1;z1;x2;y2;z2 per line
+///
+/// Returns CuboidData matching TypeScript type:
+/// { groups: Map<number, number[]>, cuboidsArray: Uint16Array }
+#[wasm_bindgen(js_name = "groupCuboids")]
+pub fn group_cuboids(csv: &str) -> CuboidData {
+    let lines: Vec<&str> = csv.trim().lines().collect();
+    let count = lines.len();
+
+    // Pre-allocate with exact capacity
+    let mut cuboids_array = vec![0u16; count * OFFSET];
+    let mut groups: FxHashMap<u32, Vec<u32>> = FxHashMap::default();
+
+    // Use Vec<bool> instead of HashSet - much faster for dense integer IDs
+    let mut visited = vec![false; count];
+
+    // Maps for all axes - pre-allocate with reasonable capacity
+    let mut maps1: [FxHashMap<u16, Vec<usize>>; 3] = [
+        FxHashMap::with_capacity_and_hasher(count / 4, Default::default()),
+        FxHashMap::with_capacity_and_hasher(count / 4, Default::default()),
+        FxHashMap::with_capacity_and_hasher(count / 4, Default::default()),
+    ];
+    let mut maps2: [FxHashMap<u16, Vec<usize>>; 3] = [
+        FxHashMap::with_capacity_and_hasher(count / 4, Default::default()),
+        FxHashMap::with_capacity_and_hasher(count / 4, Default::default()),
+        FxHashMap::with_capacity_and_hasher(count / 4, Default::default()),
+    ];
+
+    // Parse CSV and populate arrays and maps
+    for (i, line) in lines.iter().enumerate() {
+        let base = i * OFFSET;
+        let mut j = 0;
+
+        // Parse values inline - faster than collecting into Vec first
+        for part in line.trim().split(';') {
+            if j >= OFFSET {
+                break;
+            }
+            if let Ok(value) = part.parse::<u16>() {
+                cuboids_array[base + j] = value;
+                j += 1;
+            }
+        }
+
+        // Populate maps for all 3 axes
+        if j >= OFFSET {
+            for axis in 0..3 {
+                let val1 = cuboids_array[base + 1 + axis];
+                let val2 = cuboids_array[base + 4 + axis];
+
+                maps1[axis].entry(val1).or_default().push(i);
+                maps2[axis].entry(val2).or_default().push(i);
+            }
+        }
     }
 
-    pub fn build_spatial_hash(&mut self) {
-        self.spatial_hash = build_spatial_hash(&self.cuboids);
+    // Build groups of connected cuboids
+    let mut group_id: u32 = 0;
+    for i in 0..count {
+        if !visited[i] {
+            let connected_cuboids = find_connected(&cuboids_array, i, &mut visited, &maps1, &maps2);
+
+            // Only create groups with more than 1 cuboid
+            if connected_cuboids.len() > 1 {
+                groups.insert(
+                    group_id,
+                    connected_cuboids.iter().map(|&x| x as u32).collect(),
+                );
+                group_id += 1;
+            }
+        }
     }
 
-    pub fn build_groups(&mut self) -> BoxesResult {
-        build_all_groups(&self.cuboids, &self.spatial_hash).into()
-    }
-
-    pub fn get_cuboid_count(&self) -> usize {
-        self.cuboids.len()
+    CuboidData {
+        cuboids_array,
+        groups,
     }
 }

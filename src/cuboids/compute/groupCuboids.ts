@@ -1,10 +1,8 @@
 // Using stack to avoid deep recursion
-export type CuboidData = {
-  groups: Map<number, number[]>;
-  cuboidsArray: Uint16Array;
-};
 
-export const generateHashMapsB = (csv: string): CuboidData => {
+import type { CuboidData } from "../types";
+
+export const groupCuboids = (csv: string): CuboidData => {
   const offset = 7;
   const lines = csv.trim().split("\n");
   const count = lines.length;

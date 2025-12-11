@@ -10,18 +10,21 @@ export class Cuboids {
   constructor(api: Api) {
     this.api = api;
 
-    this.worker = new Worker(new URL("./worker.ts", import.meta.url), {
+    this.worker = new Worker(new URL("./compute/worker.ts", import.meta.url), {
       type: "module",
     });
 
-    this.workerWasm = new Worker(new URL("./workerWasm.ts", import.meta.url), {
-      type: "module",
-    });
+    this.workerWasm = new Worker(
+      new URL("./compute/workerWasm.ts", import.meta.url),
+      {
+        type: "module",
+      },
+    );
 
     this.worker.onmessage = this.processWorkerMessage.bind(this);
     this.workerWasm.onmessage = this.processWorkerMessage.bind(this);
 
-    if ((this, this.useWasm)) {
+    if (this.useWasm) {
       this.workerWasm.postMessage({ type: "warmup" });
     }
 
@@ -47,12 +50,6 @@ export class Cuboids {
     const type = e.data.type;
 
     switch (type) {
-      case "boundingBox":
-        this.api.onBoundingBoxSet.emit(e.data.boundingBox);
-        break;
-      case "boxes":
-        this.api.onBoxesComputed.emit(e.data.boxes);
-        break;
       case "cuboids":
         this.api.onCuboidsComputed.emit(e.data.data);
         break;

@@ -1,5 +1,3 @@
-
-// Box Fragment Shader with Triplanar Mapping
 uniform float uTime;
 uniform vec3 uColor;
 uniform sampler2D uTexture;
@@ -81,7 +79,7 @@ void main() {
     vec3 diffuse = diff * baseColor;
     vec3 finalColor = ambient + diffuse;
 
-    // Aply edges
+    // Apply edges
     float edgeFactor = getEdgeFactor(vLocalPosition, 1.2);
     finalColor = mix(vec3(0.0), finalColor, edgeFactor);
 
